@@ -1,10 +1,27 @@
 package openapi3
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestResolvePath(t *testing.T) {
+	var b = &url.URL{Path: "testdata/recursiveRef"}
+	var c = &url.URL{Path: "./components/models/error.yaml"}
+	u, err := resolvePath(b, c)
+
+	require.NoError(t, err)
+	require.Equal(t, &url.URL{Path: "testdata/recursiveRef/components/models/error.yaml"}, u)
+
+	b = &url.URL{Path: "testdata/recursiveRef/openapi.yaml"}
+	c = &url.URL{Path: "./components/models/error.yaml"}
+	u, err = resolvePath(b, c)
+
+	require.NoError(t, err)
+	require.Equal(t, &url.URL{Path: "testdata/recursiveRef/components/models/error.yaml"}, u)
+}
 
 func TestLoaderSupportsRecursiveReference(t *testing.T) {
 	loader := NewLoader()
@@ -14,6 +31,8 @@ func TestLoaderSupportsRecursiveReference(t *testing.T) {
 	err = doc.Validate(loader.Context)
 	require.NoError(t, err)
 	require.Equal(t, "bar", doc.Paths["/foo"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value.Properties["foo2"].Value.Properties["foo"].Value.Properties["bar"].Value.Example)
+	require.Equal(t, "ErrorDetails", doc.Paths["/foo"].Get.Responses.Get(400).Value.Content.Get("application/json").Schema.Value.Title)
+	require.Equal(t, "ErrorDetails", doc.Paths["/double-ref-foo"].Get.Responses.Get(400).Value.Content.Get("application/json").Schema.Value.Title)
 }
 
 func TestIssue447(t *testing.T) {

@@ -249,7 +249,14 @@ func join(basePath *url.URL, relativePath *url.URL) (*url.URL, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot copy path: %q", basePath.String())
 	}
-	newPath.Path = path.Join(path.Dir(newPath.Path), relativePath.Path)
+
+	// check if basePath is reference to the file
+	if strings.LastIndex(basePath.Path, ".") > strings.LastIndex(basePath.Path, "/") {
+		newPath.Path = path.Join(path.Dir(newPath.Path), relativePath.Path)
+	} else {
+		newPath.Path = path.Join(newPath.Path, relativePath.Path)
+	}
+
 	return newPath, nil
 }
 
@@ -420,6 +427,11 @@ func (loader *Loader) documentPathForRecursiveRef(current *url.URL, resolvedRef 
 	if loader.rootDir == "" {
 		return current
 	}
+
+	if resolvedRef == "" {
+		return current
+	}
+
 	return &url.URL{Path: path.Join(loader.rootDir, resolvedRef)}
 }
 
